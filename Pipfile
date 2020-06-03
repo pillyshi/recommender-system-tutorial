@@ -9,6 +9,7 @@ verify_ssl = true
 fastfm = "*"
 numpy = "*"
 scipy = "*"
+scikit-learn = "*"
 
 [requires]
 python_version = "3.6"
