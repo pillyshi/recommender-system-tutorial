@@ -28,6 +28,8 @@ class Encoder(object):
 
     def __init__(self):
         self.id2index = {}
+        self.item_attributes = {}
+        self.user_attributes = {}
     
     def get_Xy(self, filename, test=False):
         rows, cols, data = [], [], []
@@ -43,11 +45,46 @@ class Encoder(object):
                 rows.append(i)
                 cols.append(j)
                 data.append(1)
+            if feedback.item_id in self.item_attributes:
+                for name, value in self.item_attributes[feedback.item_id].items():
+                    j = self._get_index('item-attribute-' + name, test)
+                    if j is not None:
+                        rows.append(i)
+                        cols.append(j)
+                        data.append(value)
+            if feedback.user_id in self.user_attributes:
+                for name, value in self.user_attributes[feedback.user_id].items():
+                    j = self._get_index('user-attribute-' + name, test)
+                    if j is not None:
+                        rows.append(i)
+                        cols.append(j)
+                        data.append(value)
             y.append(feedback.rating)
         X = csr_matrix((data, (rows, cols)), shape=(i + 1, len(self.id2index)))
         y = np.array(y)
         return X, y
-    
+
+    def load_item_attributes(self, filename):
+        with open(filename, 'rb') as f:
+            for line in f:
+                fields = line.strip().split(b'|')
+                item_id = fields[0].decode('utf-8')
+                self.item_attributes[item_id] = {f'category-{category_number}': 1
+                                                 for category_number, category in enumerate(fields[5:], start=1) if category == b'1'}
+
+    def load_user_attributes(self, filename):
+        with open(filename, 'rb') as f:
+            for line in f:
+                fields = line.strip().split(b'|')
+                user_id = fields[0].decode('utf-8')
+                occupation = fields[3].decode('utf-8')
+                self.user_attributes[user_id] = {
+                    'age': int(fields[1]),
+                    'gender': 1 if fields[2] == b'M' else 0,
+                    f'occupation-{occupation}': 1
+                }
+
+
     def _get_index(self, key, test=False):
         if test:
             if key in self.id2index:
@@ -60,7 +97,11 @@ class Encoder(object):
 
 def main(args):
     encoder = Encoder()
+    encoder.load_item_attributes(os.path.join(args.in_dir, 'u.item'))
+    encoder.load_user_attributes(os.path.join(args.in_dir, 'u.user'))
     X, y = encoder.get_Xy(os.path.join(args.in_dir, 'ua.base'))
+    print(X.shape)
+    print(len(y))
     fm = als.FMRegression(random_state=args.random_state)
     
     # cross-validation
