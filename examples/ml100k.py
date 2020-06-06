@@ -95,7 +95,7 @@ class Encoder(object):
             return self.id2index.setdefault(key, len(self.id2index))
 
 
-def main(args):
+def explicit(args):
     encoder = Encoder()
     encoder.load_item_attributes(os.path.join(args.in_dir, 'u.item'))
     encoder.load_user_attributes(os.path.join(args.in_dir, 'u.user'))
@@ -121,14 +121,23 @@ def main(args):
     print(f'RMSE: {np.sqrt(mse)}')
 
 
+def implicit(args):
+    pass
+
+
 def get_parser():
-    p = argparse.ArgumentParser()
-    p.add_argument('--in-dir', required=True)
-    p.add_argument('--random-state', type=int, default=1)
-    return p
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--in-dir', required=True)
+    parser.add_argument('--random-state', type=int, default=1)
+    subparsers = parser.add_subparsers()
+    p = subparsers.add_parser('explicit')
+    p.set_defaults(main=explicit)
+    p = subparsers.add_parser('implciit')
+    p.set_defaults(main=implicit)
+    return parser
 
 
 if __name__ == "__main__":
     p = get_parser()
     args = p.parse_args()
-    main(args)
+    args.main(args)
