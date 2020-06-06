@@ -1,11 +1,13 @@
 import os
 import argparse
+import collections
 
 import numpy as np
 from scipy.sparse import csr_matrix
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold, GridSearchCV
 from fastFM import als
+from implicit.als import AlternatingLeastSquares
 
 from recommender_system_tutorial.types import ImplicitFeedback
 
@@ -133,7 +135,37 @@ def explicit(args):
 
 
 def implicit(args):
-    pass
+    row_dict, col_dict = {}, {}
+    rows, cols, data = [], [], []
+    for feedback in iter_implicit_feedbacks(os.path.join(args.in_dir, 'ua.base')):
+        i = row_dict.setdefault(feedback.item_id, len(row_dict))
+        j = col_dict.setdefault(feedback.user_id, len(col_dict))
+        rows.append(i)
+        cols.append(j)
+        data.append(1)
+    item_user_data = csr_matrix((data, (rows, cols)), shape=(len(row_dict), len(col_dict)))
+
+    model = AlternatingLeastSquares(factors=8)
+    model.fit(item_user_data)
+
+    # Evaluation
+    user_items = item_user_data.T.tocsr()
+    user_items_test = collections.defaultdict(set)
+    for feedback in iter_implicit_feedbacks(os.path.join(args.in_dir, 'ua.test')):
+        try:
+            i = row_dict[feedback.item_id]
+            j = col_dict[feedback.user_id]
+        except KeyError as e:
+            continue
+        user_items_test[j].add(i)
+    
+    topk = 10
+    precision = 0
+    for user_index, item_indices in user_items_test.items():
+        recommendations = model.recommend(user_index, user_items, topk, True)
+        precision += sum(1 if item_index in item_indices else 0 for item_index, _ in recommendations) / topk
+    precision = precision / len(user_items_test)
+    print('precision:', precision)
 
 
 def get_parser():
@@ -143,7 +175,7 @@ def get_parser():
     subparsers = parser.add_subparsers()
     p = subparsers.add_parser('explicit')
     p.set_defaults(main=explicit)
-    p = subparsers.add_parser('implciit')
+    p = subparsers.add_parser('implicit')
     p.set_defaults(main=implicit)
     return parser
 
