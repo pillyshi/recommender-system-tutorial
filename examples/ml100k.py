@@ -167,6 +167,13 @@ def implicit(args):
     precision = precision / len(user_items_test)
     print('precision:', precision)
 
+    item_id = 1
+    item_index = row_dict[item_id]
+    index2id = {value: key for key, value in row_dict.items()}
+    for _item_index, score in model.similar_items(item_index, 10):
+        _item_id = index2id[_item_index]
+        print(_item_id)
+
 
 def get_parser():
     parser = argparse.ArgumentParser()
