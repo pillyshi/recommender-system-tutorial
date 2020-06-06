@@ -7,12 +7,23 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold, GridSearchCV
 from fastFM import als
 
+from recommender_system_tutorial.types import ImplicitFeedback
+
 
 def iter_feedbacks(filename):
     with open(filename) as f:
         for line in f:
             fields = line.strip().split('\t')
             yield ExplicitFeedback(*fields)
+
+
+def iter_implicit_feedbacks(filename):
+    with open(filename) as f:
+        for line in f:
+            fields = line.strip().split('\t')
+            user_id = int(fields[0])
+            item_id = int(fields[1])
+            yield ImplicitFeedback(item_id, user_id)
 
 
 class ExplicitFeedback(object):
