@@ -11,6 +11,8 @@ numpy = "*"
 scipy = "*"
 scikit-learn = "*"
 implicit = "*"
+sqlalchemy = "*"
+sqlalchemy-migrate = "*"
 
 [requires]
 python_version = "3.6"
